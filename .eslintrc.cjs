@@ -32,6 +32,7 @@ module.exports = {
   rules: {
     // 启用的规则及其各自的错误级别。0(off)  1(warning)  2(error)
     'no-console': 0,
+    'no-debugger': 0,
     semi: [1, 'never'],
     quotes: [1, 'single'],
     'no-unused-vars': 0,

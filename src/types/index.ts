@@ -80,15 +80,27 @@ export interface AdvancedStyleType {
 }
 
 export interface AdvancedStyleParamsType {
-  x0: number,
-  y0: number,
-  r0: number,
-  x1: number,
-  y1: number,
-  r1: number,
-  startAngle: number,
-  x: number,
-  y: number,
-  image: CanvasImageSource,
-  repetition: string,
+  linear: Partial<{
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+  }>,
+  radial: Partial<{
+    x0: number,
+    y0: number,
+    r0: number,
+    x1: number,
+    y1: number,
+    r1: number,
+  }>,
+  conic: Partial<{
+    startAngle: number,
+    x: number,
+    y: number,
+  }>,
+  pattern: Partial<{
+    image: CanvasImageSource,
+    repetition: string,
+  }>
 }

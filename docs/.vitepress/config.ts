@@ -49,6 +49,13 @@ export default {
             { text: 'Watermark', link: '/guide/watermark' },
             { text: 'Blind Watermark', link: '/guide/blind-watermark' },
           ]
+        },
+        {
+          text: 'Watermark',
+          items: [
+            { text: 'Text Watermark', link: '/guide/watermark/text-watermark' },
+            { text: 'Multiline Text Watermark', link: '/guide/watermark/multiline-text-watermark' },
+          ]
         }
       ],
       '/config': [
