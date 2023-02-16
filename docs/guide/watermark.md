@@ -111,13 +111,13 @@ onMounted(() => {
 
     content: '123456789123456789123456789123456789',
 
-    // contentType: 'image',
-    // image: 'https://cdn.jsdelivr.net/gh/zhensherlock/oss@main/uPic/github-mkWBiK.png',
-    // imageWidth: 100,
-
     // contentType: 'multi-line-text',
     // content: 'hello my watermark watermark watermark',
     // fontSize: '30px',
+
+    // contentType: 'image',
+    // image: 'https://cdn.jsdelivr.net/gh/zhensherlock/oss@main/uPic/github-mkWBiK.png',
+    // imageWidth: 100,
 
     // contentType: 'rich-text',
     // content: '<div style="background: #ccc;">Rich text watermark is so <span style="color: #f00">nice</span></div>',
@@ -141,19 +141,19 @@ onMounted(() => {
     // },
     advancedStyle: {
       // type: 'linear',
-      type: 'radial',
+      // type: 'radial',
       // type: 'conic',
       // colorStops: [
       //   { offset: 0, color: 'red' },
       //   { offset: 0.5, color: 'green' },
       //   { offset: 1, color: 'blue' }
       // ],
-      colorStops: [
-        { offset: 0, color: 'red' },
-        { offset: 0.3, color: 'green' },
-        { offset: 0.6, color: 'black' },
-        { offset: 1, color: 'blue' }
-      ],
+      // colorStops: [
+      //   { offset: 0, color: 'red' },
+      //   { offset: 0.3, color: 'green' },
+      //   { offset: 0.6, color: 'black' },
+      //   { offset: 1, color: 'blue' }
+      // ],
       // colorStops: [
       //   { offset: 0, color: 'red' },
       //   { offset: 1, color: 'blue' }

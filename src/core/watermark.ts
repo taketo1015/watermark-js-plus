@@ -4,16 +4,14 @@ import {
   createCustomContentSVG,
   getMultiLineData,
   isFunction,
-  // isString,
   isUndefined
 } from '../utils'
 import {
-  AdvancedStyleParamsType,
-  TextAlignType,
-  TextBaselineType,
   WatermarkDom,
   WatermarkOptions
 } from '../types'
+
+import { initializeOptions } from '../utils/initialization'
 
 /**
  * Watermark class
@@ -24,13 +22,9 @@ export default class Watermark {
   private observer?: MutationObserver
   private parentObserve?: MutationObserver
   private watermarkDom?: WatermarkDom
-  private props?: Partial<WatermarkOptions>
-  private recommendAdvancedStyleParams: AdvancedStyleParamsType = {
-    linear: {},
-    radial: {},
-    conic: {},
-    pattern: {}
-  }
+  private readonly props?: Partial<WatermarkOptions>
+  private canvas: HTMLCanvasElement
+  private recommendOptions
 
   /**
    * Watermark constructor
@@ -69,6 +63,9 @@ export default class Watermark {
       onDestroyed: () => {}
     }, props)
     this.changeParentElement(this.options.parent)
+    this.canvas = Watermark.createCanvas(this.options.width, this.options.height)
+    this.recommendOptions = initializeOptions(this.canvas, this.options, this.props)
+    // document.body?.appendChild(this.canvas)
   }
 
   /**
@@ -87,10 +84,14 @@ export default class Watermark {
     return canvas
   }
 
-  changeOptions (props: Partial<WatermarkOptions> = {}) {
-    Object.keys(props).forEach(key => {
-      this.options?.[key as keyof WatermarkOptions] && (this.options[key as keyof WatermarkOptions] = <never> props[key as keyof WatermarkOptions])
+  changeOptions (args: Partial<WatermarkOptions> = {}) {
+    debugger
+    Object.keys(args).forEach(key => {
+      this.options[key as keyof WatermarkOptions] = <never> args[key as keyof WatermarkOptions]
     })
+    this.changeParentElement(this.options.parent)
+    this.canvas = Watermark.createCanvas(this.options.width, this.options.height)
+    this.recommendOptions = initializeOptions(this.canvas, this.options, args)
   }
 
   changeParentElement (parent: Element | string) {
@@ -116,6 +117,7 @@ export default class Watermark {
 
     const canvas = await this.draw()
     const image = convertImage(canvas)
+    this.clearCanvas()
     this.watermarkDom = document.createElement('div')
     const watermarkInnerDom = document.createElement('div')
     this.watermarkDom.__WATERMARK__ = 'watermark'
@@ -159,101 +161,122 @@ export default class Watermark {
     this.options.onDestroyed?.()
   }
 
-  private initializeOptions (ctx: CanvasRenderingContext2D) {
-    if (this.options?.rotate) {
-      this.options.rotate = (360 - this.options.rotate % 360) * (Math.PI / 180)
-    }
-    let translateX: number
-    let translateY: number
-    let textBaseline: TextBaselineType = 'middle'
-    let textAlign: TextAlignType = 'center'
-    // const colorStops = this.options?.advancedStyle?.colorStops || []
-    switch (this.options.translatePlacement) {
-      case 'top':
-        translateX = this.options.width / 2
-        translateY = 0
-        textBaseline = 'top'
-        this.recommendAdvancedStyleParams.linear.x0 = -this.options.width / 2
-        this.recommendAdvancedStyleParams.linear.x1 = this.options.width / 2
-        this.recommendAdvancedStyleParams.radial.r0 = 0
-        this.recommendAdvancedStyleParams.radial.r1 = this.options.width / 2
-        this.recommendAdvancedStyleParams.conic.x = 0
-        this.recommendAdvancedStyleParams.conic.y = 0
-        break
-      case 'top-start':
-        translateX = 0
-        translateY = 0
-        textBaseline = 'top'
-        textAlign = 'start'
-        this.recommendAdvancedStyleParams.linear.x0 = 0
-        this.recommendAdvancedStyleParams.linear.x1 = this.options.width
-        break
-      case 'top-end':
-        translateX = this.options.width
-        translateY = 0
-        textBaseline = 'top'
-        textAlign = 'end'
-        this.recommendAdvancedStyleParams.linear.x0 = 0
-        this.recommendAdvancedStyleParams.linear.x1 = -this.options.width
-        break
-      case 'bottom':
-        translateX = this.options.width / 2
-        translateY = this.options.height
-        textBaseline = 'bottom'
-        this.recommendAdvancedStyleParams.linear.x0 = -this.options.width / 2
-        this.recommendAdvancedStyleParams.linear.x1 = this.options.width / 2
-        break
-      case 'bottom-start':
-        translateX = 0
-        translateY = this.options.height
-        textBaseline = 'bottom'
-        textAlign = 'start'
-        this.recommendAdvancedStyleParams.linear.x0 = 0
-        this.recommendAdvancedStyleParams.linear.x1 = this.options.width
-        break
-      case 'bottom-end':
-        translateX = this.options.width
-        translateY = this.options.height
-        textBaseline = 'bottom'
-        textAlign = 'end'
-        this.recommendAdvancedStyleParams.linear.x0 = 0
-        this.recommendAdvancedStyleParams.linear.x1 = -this.options.width
-        break
-      case 'left':
-        translateX = 0
-        translateY = this.options.height / 2
-        textAlign = 'start'
-        this.recommendAdvancedStyleParams.linear.x0 = 0
-        this.recommendAdvancedStyleParams.linear.x1 = this.options.width
-        break
-      case 'right':
-        translateX = this.options.width
-        translateY = this.options.height / 2
-        textAlign = 'end'
-        this.recommendAdvancedStyleParams.linear.x0 = 0
-        this.recommendAdvancedStyleParams.linear.x1 = -this.options.width
-        break
-      case 'middle':
-        translateX = this.options.width / 2
-        translateY = this.options.height / 2
-        this.recommendAdvancedStyleParams.linear.x0 = -this.options.width / 2
-        this.recommendAdvancedStyleParams.linear.x1 = this.options.width / 2
-        this.recommendAdvancedStyleParams.conic.x = 0
-        this.recommendAdvancedStyleParams.conic.y = 0
-        break
-    }
-    if (isUndefined(this.props?.translateX) || isUndefined(this.props?.translateY)) {
-      this.options.translateX = translateX
-      this.options.translateY = translateY
-    } else {
-      textBaseline = 'top'
-      textAlign = 'left'
-      this.recommendAdvancedStyleParams.linear.x0 = 0
-      this.recommendAdvancedStyleParams.linear.x1 = this.options.textRowMaxWidth || this.options.width
-    }
-    isUndefined(this.props?.textBaseline) && (this.options.textBaseline = textBaseline)
-    isUndefined(this.props?.textAlign) && (this.options.textAlign = textAlign)
-  }
+  // private initializeOptions () {
+  //   if (this.options?.rotate) {
+  //     this.options.rotate = (360 - this.options.rotate % 360) * (Math.PI / 180)
+  //   }
+  //   let translateX: number
+  //   let translateY: number
+  //   let textBaseline: TextBaselineType = 'middle'
+  //   let textAlign: TextAlignType = 'center'
+  //   switch (this.options.translatePlacement) {
+  //     case 'top':
+  //       translateX = this.options.width / 2
+  //       translateY = 0
+  //       textBaseline = 'top'
+  //       this.recommendAdvancedStyleParams.linear.x0 = -this.options.width / 2
+  //       this.recommendAdvancedStyleParams.linear.x1 = this.options.width / 2
+  //       // this.recommendAdvancedStyleParams.radial.x0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.y0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.r0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.x1 = 0
+  //       // this.recommendAdvancedStyleParams.radial.y1 = 0
+  //       this.recommendAdvancedStyleParams.radial.r1 = this.options.width / 2
+  //       this.recommendAdvancedStyleParams.conic.x = 0
+  //       this.recommendAdvancedStyleParams.conic.y = 0
+  //       break
+  //     case 'top-start':
+  //       translateX = 0
+  //       translateY = 0
+  //       textBaseline = 'top'
+  //       textAlign = 'start'
+  //       this.recommendAdvancedStyleParams.linear.x0 = 0
+  //       this.recommendAdvancedStyleParams.linear.x1 = this.options.width
+  //       // this.recommendAdvancedStyleParams.radial.x0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.y0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.r0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.x1 = 0
+  //       // this.recommendAdvancedStyleParams.radial.y1 = 0
+  //       this.recommendAdvancedStyleParams.radial.r1 = this.options.width
+  //       break
+  //     case 'top-end':
+  //       translateX = this.options.width
+  //       translateY = 0
+  //       textBaseline = 'top'
+  //       textAlign = 'end'
+  //       this.recommendAdvancedStyleParams.linear.x0 = 0
+  //       this.recommendAdvancedStyleParams.linear.x1 = -this.options.width
+  //       break
+  //     case 'bottom':
+  //       translateX = this.options.width / 2
+  //       translateY = this.options.height
+  //       textBaseline = 'bottom'
+  //       this.recommendAdvancedStyleParams.linear.x0 = -this.options.width / 2
+  //       this.recommendAdvancedStyleParams.linear.x1 = this.options.width / 2
+  //       // this.recommendAdvancedStyleParams.radial.x0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.y0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.r0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.x1 = 0
+  //       // this.recommendAdvancedStyleParams.radial.y1 = 0
+  //       this.recommendAdvancedStyleParams.radial.r1 = this.options.width / 2
+  //       break
+  //     case 'bottom-start':
+  //       translateX = 0
+  //       translateY = this.options.height
+  //       textBaseline = 'bottom'
+  //       textAlign = 'start'
+  //       this.recommendAdvancedStyleParams.linear.x0 = 0
+  //       this.recommendAdvancedStyleParams.linear.x1 = this.options.width
+  //       break
+  //     case 'bottom-end':
+  //       translateX = this.options.width
+  //       translateY = this.options.height
+  //       textBaseline = 'bottom'
+  //       textAlign = 'end'
+  //       this.recommendAdvancedStyleParams.linear.x0 = 0
+  //       this.recommendAdvancedStyleParams.linear.x1 = -this.options.width
+  //       break
+  //     case 'left':
+  //       translateX = 0
+  //       translateY = this.options.height / 2
+  //       textAlign = 'start'
+  //       this.recommendAdvancedStyleParams.linear.x0 = 0
+  //       this.recommendAdvancedStyleParams.linear.x1 = this.options.width
+  //       break
+  //     case 'right':
+  //       translateX = this.options.width
+  //       translateY = this.options.height / 2
+  //       textAlign = 'end'
+  //       this.recommendAdvancedStyleParams.linear.x0 = 0
+  //       this.recommendAdvancedStyleParams.linear.x1 = -this.options.width
+  //       break
+  //     case 'middle':
+  //       translateX = this.options.width / 2
+  //       translateY = this.options.height / 2
+  //       this.recommendAdvancedStyleParams.linear.x0 = -this.options.width / 2
+  //       this.recommendAdvancedStyleParams.linear.x1 = this.options.width / 2
+  //       // this.recommendAdvancedStyleParams.radial.x0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.y0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.r0 = 0
+  //       // this.recommendAdvancedStyleParams.radial.x1 = 0
+  //       // this.recommendAdvancedStyleParams.radial.y1 = 0
+  //       this.recommendAdvancedStyleParams.radial.r1 = this.options.width / 2
+  //       this.recommendAdvancedStyleParams.conic.x = 0
+  //       this.recommendAdvancedStyleParams.conic.y = 0
+  //       break
+  //   }
+  //   if (isUndefined(this.props?.translateX) || isUndefined(this.props?.translateY)) {
+  //     this.options.translateX = translateX
+  //     this.options.translateY = translateY
+  //   } else {
+  //     textBaseline = 'top'
+  //     textAlign = 'left'
+  //     this.recommendAdvancedStyleParams.linear.x0 = 0
+  //     this.recommendAdvancedStyleParams.linear.x1 = this.options.textRowMaxWidth || this.options.width
+  //   }
+  //   isUndefined(this.props?.textBaseline) && (this.options.textBaseline = textBaseline)
+  //   isUndefined(this.props?.textAlign) && (this.options.textAlign = textAlign)
+  // }
 
   private validateUnique (): boolean {
     let result = true
@@ -284,13 +307,12 @@ export default class Watermark {
   }
 
   private draw (): Promise<HTMLCanvasElement> {
-    const canvas = Watermark.createCanvas(this.options.width, this.options.height)
-    // document.body?.appendChild(canvas)
-    const ctx = canvas.getContext('2d')
+    // const canvas = Watermark.createCanvas(this.options.width, this.options.height)
+    const ctx = this.canvas.getContext('2d')
     if (ctx === null) {
       throw new Error('get context error')
     }
-    this.initializeOptions(ctx)
+    // this.initializeOptions()
     // test code
     ctx.beginPath()
     ctx.rect(1, 1, this.options.width, this.options.height)
@@ -307,6 +329,7 @@ export default class Watermark {
     ctx.closePath()
 
     this.setStyle(ctx)
+    ctx.save()
     ctx.translate(this.options.translateX as number, this.options.translateY as number)
     ctx.rotate(this.options.rotate)
     return new Promise((resolve) => {
@@ -369,9 +392,9 @@ export default class Watermark {
 
   createLinearGradient (ctx: CanvasRenderingContext2D): CanvasGradient {
     const gradient = ctx.createLinearGradient(
-      <number> this.options.advancedStyle?.params?.linear?.x0 || <number> this.recommendAdvancedStyleParams.linear.x0,
+      <number> this.options.advancedStyle?.params?.linear?.x0 || <number> this.recommendOptions.advancedStyleParams.linear.x0,
       <number> this.options.advancedStyle?.params?.linear?.y0 || 0,
-      <number> this.options.advancedStyle?.params?.linear?.x1 || <number> this.recommendAdvancedStyleParams.linear.x1,
+      <number> this.options.advancedStyle?.params?.linear?.x1 || <number> this.recommendOptions.advancedStyleParams.linear.x1,
       <number> this.options.advancedStyle?.params?.linear?.y1 || 0
     )
     this.options?.advancedStyle?.colorStops?.forEach(item => {
@@ -383,8 +406,8 @@ export default class Watermark {
   createConicGradient (ctx: CanvasRenderingContext2D): CanvasGradient {
     const gradient = ctx.createConicGradient(
       <number> this.options?.advancedStyle?.params?.conic?.startAngle || 0,
-      <number> this.options?.advancedStyle?.params?.conic?.x || <number> this.recommendAdvancedStyleParams.conic.x,
-      <number> this.options?.advancedStyle?.params?.conic?.y || <number> this.recommendAdvancedStyleParams.conic.y
+      <number> this.options?.advancedStyle?.params?.conic?.x || <number> this.recommendOptions.advancedStyleParams.conic.x,
+      <number> this.options?.advancedStyle?.params?.conic?.y || <number> this.recommendOptions.advancedStyleParams.conic.y
     )
     this.options?.advancedStyle?.colorStops?.forEach(item => {
       gradient.addColorStop(item.offset, item.color)
@@ -394,12 +417,12 @@ export default class Watermark {
 
   createRadialGradient (ctx: CanvasRenderingContext2D): CanvasGradient {
     const gradient = ctx.createRadialGradient(
-      <number> this.options?.advancedStyle?.params?.radial?.x0 || 0,
-      <number> this.options?.advancedStyle?.params?.radial?.y0 || 0,
-      <number> this.options?.advancedStyle?.params?.radial?.r0 || <number> this.recommendAdvancedStyleParams.radial.r0,
-      <number> this.options?.advancedStyle?.params?.radial?.x1 || 0,
-      <number> this.options?.advancedStyle?.params?.radial?.y1 || 0,
-      <number> this.options?.advancedStyle?.params?.radial?.r1 || <number> this.recommendAdvancedStyleParams.radial.r1
+      <number> this.options?.advancedStyle?.params?.radial?.x0 || <number> this.recommendOptions.advancedStyleParams.radial.x0,
+      <number> this.options?.advancedStyle?.params?.radial?.y0 || <number> this.recommendOptions.advancedStyleParams.radial.y0,
+      <number> this.options?.advancedStyle?.params?.radial?.r0 || <number> this.recommendOptions.advancedStyleParams.radial.r0,
+      <number> this.options?.advancedStyle?.params?.radial?.x1 || <number> this.recommendOptions.advancedStyleParams.radial.x1,
+      <number> this.options?.advancedStyle?.params?.radial?.y1 || <number> this.recommendOptions.advancedStyleParams.radial.y1,
+      <number> this.options?.advancedStyle?.params?.radial?.r1 || <number> this.recommendOptions.advancedStyleParams.radial.r1
     )
     this.options?.advancedStyle?.colorStops?.forEach(item => {
       gradient.addColorStop(item.offset, item.color)
@@ -427,7 +450,7 @@ export default class Watermark {
       text: this.options.content,
       x: 0,
       y: 0,
-      maxWidth: this.options.textRowMaxWidth
+      maxWidth: this.options.textRowMaxWidth || this.options.width
     })
     resolve(ctx.canvas)
   }
@@ -607,5 +630,15 @@ export default class Watermark {
       subtree: true, // 布尔值，表示是否将该观察器应用于该节点的所有后代节点。
       characterData: true // 节点内容或节点文本的变动。
     })
+  }
+
+  private clearCanvas () {
+    const ctx = this.canvas.getContext('2d')
+    if (ctx === null) {
+      throw new Error('get context error')
+    }
+    ctx.restore()
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    // this.canvas.width = this.options.w
   }
 }

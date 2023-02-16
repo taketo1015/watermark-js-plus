@@ -91,7 +91,7 @@ export default {
     },
   },
   markdown: {
-    lineNumbers: true
+    // lineNumbers: true
   },
   locales: {
     '/': {
